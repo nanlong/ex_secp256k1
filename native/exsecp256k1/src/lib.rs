@@ -1,7 +1,7 @@
 use rustler::types::binary::{Binary, OwnedBinary};
 use rustler::{Encoder, Env, Term};
-use secp256k1::curve::Scalar;
-use secp256k1::{Message, PublicKey, RecoveryId, SecretKey, Signature};
+use libsecp256k1::curve::Scalar;
+use libsecp256k1::{Message, PublicKey, RecoveryId, SecretKey, Signature};
 
 mod atoms {
     rustler::atoms! {
@@ -129,7 +129,7 @@ fn recover_compact<'a>(
 
     let mut signature_fixed: [u8; 64] = [0; 64];
     signature_fixed.copy_from_slice(&signature_bin.as_slice()[..64]);
-    let signature = Signature::parse(&signature_fixed);
+    let signature = Signature::parse_overflowing(&signature_fixed);
 
     let recovery_id = match RecoveryId::parse(recovery_id_u8) {
         Ok(id) => id,
@@ -166,7 +166,7 @@ fn secp256k1_recover<'a>(
     signature: Signature,
     recovery_id: RecoveryId,
 ) -> Term<'a> {
-    match secp256k1::recover(&message, &signature, &recovery_id) {
+    match libsecp256k1::recover(&message, &signature, &recovery_id) {
         Ok(public_key) => {
             let public_key_array = public_key.serialize();
             let mut public_key_result: OwnedBinary = OwnedBinary::new(65).unwrap();
@@ -201,5 +201,5 @@ fn secp256k1_sign<'a>(
     let private_key = SecretKey::parse(&private_key_fixed).unwrap();
     let message = Message::parse(&message_fixed);
 
-    Ok(secp256k1::sign(&message, &private_key))
+    Ok(libsecp256k1::sign(&message, &private_key))
 }
